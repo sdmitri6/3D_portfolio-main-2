@@ -3,11 +3,12 @@ import { Canvas } from '@react-three/fiber';
 import { Fox } from '../models'; // Ensure this path is correct for your project
 import useAlert from '../hooks/useAlert';
 import { Alert, Loader } from '../components';
+import emailjs from '@emailjs/browser';
 
 const Contact = () => {
   const formRef = useRef();
   const [form, setForm] = useState({ name: '', email: '', message: '' });
-  const { alert, showAlert, hideAlert } = useAlert();
+  const { alert, showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
   const [currentAnimation, setCurrentAnimation] = useState('idle');
 
@@ -18,47 +19,40 @@ const Contact = () => {
   const handleFocus = () => setCurrentAnimation('walk');
   const handleBlur = () => setCurrentAnimation('idle');
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
     setCurrentAnimation('hit');
 
-    const formData = new FormData(formRef.current);
-    formData.append('access_key', '24896fc5-0cae-494b-af98-c2a0a523ab8e');
-
-    try {
-      const response = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        body: formData,
+    emailjs
+      .sendForm(
+        'YOUR_SERVICE_ID', // Replace with your EmailJS Service ID
+        'YOUR_TEMPLATE_ID', // Replace with your EmailJS Template ID
+        formRef.current,
+        'YOUR_PUBLIC_KEY' // Replace with your EmailJS Public Key
+      )
+      .then(
+        () => {
+          showAlert({
+            show: true,
+            text: 'Thank you for your message 😃',
+            type: 'success',
+          });
+          setForm({ name: '', email: '', message: '' });
+        },
+        (error) => {
+          console.error('Failed to send message:', error);
+          showAlert({
+            show: true,
+            text: "I didn't receive your message 😢",
+            type: 'danger',
+          });
+        }
+      )
+      .finally(() => {
+        setLoading(false);
+        setCurrentAnimation('idle');
       });
-
-      const data = await response.json();
-
-      if (data.success) {
-        showAlert({
-          show: true,
-          text: 'Thank you for your message 😃',
-          type: 'success',
-        });
-        setForm({ name: '', email: '', message: '' });
-      } else {
-        showAlert({
-          show: true,
-          text: "I didn't receive your message 😢",
-          type: 'danger',
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      showAlert({
-        show: true,
-        text: "I didn't receive your message 😢",
-        type: 'danger',
-      });
-    } finally {
-      setLoading(false);
-      setCurrentAnimation('idle');
-    }
   };
 
   return (
@@ -77,7 +71,7 @@ const Contact = () => {
             Name
             <input
               type='text'
-              name='name'
+              name='user_name'
               className='input'
               placeholder='Gan Erdene'
               required
@@ -91,7 +85,7 @@ const Contact = () => {
             Email
             <input
               type='email'
-              name='email'
+              name='user_email'
               className='input'
               placeholder='yuhiijbgan@gmail.com'
               required
@@ -108,6 +102,7 @@ const Contact = () => {
               rows='4'
               className='textarea'
               placeholder='Write your thoughts here...'
+              required
               value={form.message}
               onChange={handleChange}
               onFocus={handleFocus}
